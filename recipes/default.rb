@@ -25,7 +25,7 @@ yum_repository "epel" do
 end
 
 %w{mysql mysql-libs mysql-server}.each do |pack|
-  package "mysql-libs" do
+  package pack do
     action :remove
   end
 end
