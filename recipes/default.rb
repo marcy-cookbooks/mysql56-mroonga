@@ -9,7 +9,7 @@
 
 include_recipe "yum"
 
-base_dir = "/usr/local/src/mroonga/build"
+base_dir = "/usr/local/src/mroonga"
 
 if node[:platform] == "amazon" then
   releasever = "6"
@@ -37,19 +37,19 @@ end
 end
 
 %w{BUILD RPMS SOURCES SPECS SRPMS}.each do |dir|
-  directory "#{base_dir}/rpmbuild/#{dir}" do
+  directory "#{base_dir}/build/rpmbuild/#{dir}" do
     action :create
     recursive true
   end
 end
 
-directory "#{base_dir}/rpmbuild/RPMS/x86_64" do
+directory "#{base_dir}/build/rpmbuild/RPMS/x86_64" do
   action :create
 end
 
 execute "set .rpmmacros" do
   command <<-EOH
-  echo '%_topdir #{base_dir}/rpmbuild' > ~/.rpmmacros
+  echo '%_topdir #{base_dir}/build/rpmbuild' > ~/.rpmmacros
   echo '%debug_package %{nil}' >> ~/.rpmmacros
   EOH
 end
@@ -61,21 +61,22 @@ mysql_packages = [
   "MySQL-client-#{node['mysql56-mroonga']['mysql_version']}.el6.x86_64.rpm"
 ]
 mysql_packages.each do |rpm|
-  remote_file "#{base_dir}/rpmbuild/RPMS/x86_64/#{rpm}" do
+  remote_file "#{base_dir}/build/rpmbuild/RPMS/x86_64/#{rpm}" do
     source "http://ftp.jaist.ac.jp/pub/mysql/Downloads/MySQL-5.6/#{rpm}"
   end
   rpm_package rpm do
-    source "#{base_dir}/rpmbuild/RPMS/x86_64/#{rpm}"
+    source "#{base_dir}/build/rpmbuild/RPMS/x86_64/#{rpm}"
     action :install
   end
 end
 
-remote_file "#{base_dir}/rpmbuild/SRPMS/MySQL-#{node['mysql56-mroonga']['mysql_version']}.el6.src.rpm" do
+remote_file "#{base_dir}/build/rpmbuild/SRPMS/MySQL-#{node['mysql56-mroonga']['mysql_version']}.el6.src.rpm" do
   source "http://ftp.jaist.ac.jp/pub/mysql/Downloads/MySQL-5.6/MySQL-#{node['mysql56-mroonga']['mysql_version']}.el6.src.rpm"
 end
 
-execute "rpm -Uvh MySQL-#{node['mysql56-mroonga']['mysql_version']}.el6.src.rpm" do
-  cwd "#{base_dir}/rpmbuild/SRPMS"
+rpm_package "MySQL-#{node['mysql56-mroonga']['mysql_version']}.el6.src.rpm" do
+  source "#{base_dir}/build/rpmbuild/SRPMS/MySQL-#{node['mysql56-mroonga']['mysql_version']}.el6.src.rpm"
+  action :install
 end
 
 service "mysql" do
@@ -92,12 +93,12 @@ execute "reset root password" do
   only_if {File.exist?("/root/.mysql_secret")}
 end
 
-remote_file "/usr/local/src/mroonga/groonga-release-1.1.0-1.noarch.rpm" do
+remote_file "#{base_dir}/groonga-release-1.1.0-1.noarch.rpm" do
   source "http://packages.groonga.org/centos/groonga-release-1.1.0-1.noarch.rpm"
 end
 
 rpm_package "groonga-release-1.1.0-1.noarch.rpm" do
-  source "/usr/local/src/mroonga/groonga-release-1.1.0-1.noarch.rpm"
+  source "#{base_dir}/groonga-release-1.1.0-1.noarch.rpm"
   action :install
 end
 
@@ -124,12 +125,13 @@ end
   end
 end
 
-remote_file "#{base_dir}/mysql-mroonga-#{node['mysql56-mroonga']['mroonga_version']}.el6.src.rpm" do
+remote_file "#{base_dir}/build/mysql-mroonga-#{node['mysql56-mroonga']['mroonga_version']}.el6.src.rpm" do
   source "http://packages.groonga.org/centos/6/source/SRPMS/mysql-mroonga-#{node['mysql56-mroonga']['mroonga_version']}.el6.src.rpm"
 end
 
-execute "rpm -ivh mysql-mroonga-#{node['mysql56-mroonga']['mroonga_version']}.el6.src.rpm" do
-  cwd "#{base_dir}"
+rpm_package "mysql-mroonga-#{node['mysql56-mroonga']['mroonga_version']}.el6.src.rpm" do
+  source "#{base_dir}/build/mysql-mroonga-#{node['mysql56-mroonga']['mroonga_version']}.el6.src.rpm"
+  action :install
 end
 
 execute "prepare rpmbuild" do
@@ -144,23 +146,23 @@ execute "prepare rpmbuild" do
   perl -i -pe "s/mysql_spec_file_default\s+mysql\..+\.spec$/mysql_spec_file_default mysql.spec/g" mysql56-mroonga.spec
   perl -i -pe "s/^Name:\s+mysql-mroonga$/Name: mysql56-mroonga/" mysql56-mroonga.spec
   EOH
-  cwd "#{base_dir}/rpmbuild/SPECS"
-  not_if {File.exist?("#{base_dir}/rpmbuild/SPECS/mysql56-mroonga.spec")}
+  cwd "#{base_dir}/build/rpmbuild/SPECS"
+  not_if {File.exist?("#{base_dir}/build/rpmbuild/SPECS/mysql56-mroonga.spec")}
 end
 
 execute "rpmbuild" do
   command "rpmbuild -bb SPECS/mysql56-mroonga.spec"
-  cwd "#{base_dir}/rpmbuild"
-  not_if {File.exist?("#{base_dir}/rpmbuild/RPMS/x86_64/mysql-mroonga-doc-#{node['mysql56-mroonga']['mroonga_version']}.el6.x86_64.rpm")}
+  cwd "#{base_dir}/build/rpmbuild"
+  not_if {File.exist?("#{base_dir}/build/rpmbuild/RPMS/x86_64/mysql-mroonga-doc-#{node['mysql56-mroonga']['mroonga_version']}.el6.x86_64.rpm")}
 end
 
 rpm_package "mysql-mroonga-#{node['mysql56-mroonga']['mroonga_version']}.el6.x86_64.rpm" do
-  source "#{base_dir}/rpmbuild/RPMS/x86_64/mysql-mroonga-#{node['mysql56-mroonga']['mroonga_version']}.el6.x86_64.rpm"
+  source "#{base_dir}/build/rpmbuild/RPMS/x86_64/mysql-mroonga-#{node['mysql56-mroonga']['mroonga_version']}.el6.x86_64.rpm"
   action :install
 end
 
 rpm_package "mysql-mroonga-doc-#{node['mysql56-mroonga']['mroonga_version']}.el6.x86_64.rpm" do
-  source "#{base_dir}/rpmbuild/RPMS/x86_64/mysql-mroonga-doc-#{node['mysql56-mroonga']['mroonga_version']}.el6.x86_64.rpm"
+  source "#{base_dir}/build/rpmbuild/RPMS/x86_64/mysql-mroonga-doc-#{node['mysql56-mroonga']['mroonga_version']}.el6.x86_64.rpm"
   action :install
 end
 
