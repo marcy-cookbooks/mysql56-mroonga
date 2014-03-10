@@ -30,7 +30,7 @@ end
   end
 end
 
-%w{gcc gcc-c++ make wget yum-utils}.each do |pack|
+%w{gcc gcc-c++ make wget yum-utils perl libaio rpm-build}.each do |pack|
   package pack do
     action :install
   end
