@@ -25,12 +25,12 @@ yum_repository "epel" do
 end
 
 %w{mysql mysql-libs mysql-server}.each do |pack|
-  package "mysql-libs" do
+  package pack do
     action :remove
   end
 end
 
-%w{gcc gcc-c++ make wget yum-utils}.each do |pack|
+%w{gcc gcc-c++ make wget yum-utils perl libaio rpm-build}.each do |pack|
   package pack do
     action :install
   end

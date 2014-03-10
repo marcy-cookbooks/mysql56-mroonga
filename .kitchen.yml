@@ -1,6 +1,8 @@
 ---
-driver:
-  name: vagrant
+driver_plugin: docker
+
+driver_config:
+  use_sudo: false
 
 provisioner:
   name: chef_solo
