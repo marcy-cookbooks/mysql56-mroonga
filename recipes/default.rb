@@ -103,7 +103,7 @@ rpm_package "groonga-release-1.1.0-1.noarch.rpm" do
 end
 
 if node['platform'] == "amazon" then
-  execute 'sed  -i "s/¥$releasever/6/" /etc/yum.repos.d/groonga.repo'
+  execute 'sed  -i "s/\$releasever/6/" /etc/yum.repos.d/groonga.repo'
 end
 
 %w{
