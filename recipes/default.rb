@@ -30,7 +30,7 @@ end
   end
 end
 
-%w{gcc gcc-c++ make wget yum-utils perl libaio rpm-build}.each do |pack|
+%w{gcc gcc-c++ make wget yum-utils perl libaio rpm-build expect}.each do |pack|
   package pack do
     action :install
   end
@@ -84,11 +84,19 @@ service "mysql" do
   action [:enable, :start]
 end
 
-execute "reset root password" do
+if File.exist?("/root/.mysql_secret") then
+  File.open("/root/.mysql_secret") do |file|
+    content = file.read
+    /^.*:¥s(.*)$/ =~ content
+    password = $1
+  end
+else
+  password = ""
+end
+
+execute "set root password" do
   command <<-EOH
-  mysqladmin -uroot --password=$(head -1 /root/.mysql_secret | awk -F ': ' '{print $2}') password ""
-  mysql -uroot -e 'update user SET Password="" where User="root"' mysql
-  rm -f /root/.mysql_secret
+  mysqladmin -uroot --password=#{password} password "#{password}"
   EOH
   only_if {File.exist?("/root/.mysql_secret")}
 end
@@ -156,10 +164,21 @@ execute "rpmbuild" do
   not_if {File.exist?("#{base_dir}/build/rpmbuild/RPMS/x86_64/mysql-mroonga-doc-#{node['mysql56-mroonga']['mroonga_version']}.el6.x86_64.rpm")}
 end
 
-rpm_package "mysql-mroonga-#{node['mysql56-mroonga']['mroonga_version']}.el6.x86_64.rpm" do
-  source "#{base_dir}/build/rpmbuild/RPMS/x86_64/mysql-mroonga-#{node['mysql56-mroonga']['mroonga_version']}.el6.x86_64.rpm"
-  action :install
+execute "install mroonga" do
+  command <<-EOH
+  set timeout -1
+  spawn rpm -i #{base_dir}/build/rpmbuild/RPMS/x86_64/mysql-mroonga-#{node['mysql56-mroonga']['mroonga_version']}.el6.x86_64.rpm
+  expect "Enter password:"
+  send "#{password}\n"
+  interact
+  EOH
+  not_if "rpm -qa | grep mysql-mroonga"
 end
+
+# rpm_package "mysql-mroonga-#{node['mysql56-mroonga']['mroonga_version']}.el6.x86_64.rpm" do
+#   source "#{base_dir}/build/rpmbuild/RPMS/x86_64/mysql-mroonga-#{node['mysql56-mroonga']['mroonga_version']}.el6.x86_64.rpm"
+#   action :install
+# end
 
 rpm_package "mysql-mroonga-doc-#{node['mysql56-mroonga']['mroonga_version']}.el6.x86_64.rpm" do
   source "#{base_dir}/build/rpmbuild/RPMS/x86_64/mysql-mroonga-doc-#{node['mysql56-mroonga']['mroonga_version']}.el6.x86_64.rpm"
