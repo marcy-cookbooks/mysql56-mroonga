@@ -84,21 +84,13 @@ service "mysql" do
   action [:enable, :start]
 end
 
-if File.exist?("/root/.mysql_secret") then
-  File.open("/root/.mysql_secret") do |file|
-    content = file.read
-    /^.*:¥s(.*)$/ =~ content
-    password = $1
-  end
-else
-  password = ""
-end
-
 execute "set root password" do
   command <<-EOH
-  mysqladmin -uroot --password=#{password} password "#{password}"
+  export MYSQL_ROOT_PASSWORD=$(head -1 /root/.mysql_secret | awk -F ': ' '{print $2}')
+  mysqladmin -uroot --password=$MYSQL_ROOT_PASSWORD password "#{node['mysql56-mroonga']['root_password']}"
+  mysql -uroot -e 'update user SET Password="#{node['mysql56-mroonga']['root_password']}" where User="root"' mysql
+  echo "$(head -1 /root/.mysql_secret | awk -F ': ' '{print $1}'): #{node['mysql56-mroonga']['root_password']}\n" > /root/.mysql_secret
   EOH
-  only_if {File.exist?("/root/.mysql_secret")}
 end
 
 remote_file "#{base_dir}/groonga-release-1.1.0-1.noarch.rpm" do
@@ -164,21 +156,27 @@ execute "rpmbuild" do
   not_if {File.exist?("#{base_dir}/build/rpmbuild/RPMS/x86_64/mysql-mroonga-doc-#{node['mysql56-mroonga']['mroonga_version']}.el6.x86_64.rpm")}
 end
 
-execute "install mroonga" do
-  command <<-EOH
-  set timeout -1
-  spawn rpm -i #{base_dir}/build/rpmbuild/RPMS/x86_64/mysql-mroonga-#{node['mysql56-mroonga']['mroonga_version']}.el6.x86_64.rpm
-  expect "Enter password:"
-  send "#{password}\n"
-  interact
-  EOH
-  not_if "rpm -qa | grep mysql-mroonga"
+if node.default['mysql56-mroonga']['root_password'].empty? then
+  rpm_package "mysql-mroonga-#{node['mysql56-mroonga']['mroonga_version']}.el6.x86_64.rpm" do
+    source "#{base_dir}/build/rpmbuild/RPMS/x86_64/mysql-mroonga-#{node['mysql56-mroonga']['mroonga_version']}.el6.x86_64.rpm"
+    action :install
+  end
+else
+  execute "install mroonga" do
+    command <<-EOH
+    expect -c "
+    set timeout -1
+    spawn rpm -i #{base_dir}/build/rpmbuild/RPMS/x86_64/mysql-mroonga-#{node['mysql56-mroonga']['mroonga_version']}.el6.x86_64.rpm
+    expect password:
+    send \"#{node.default['mysql56-mroonga']['root_password']}\n\"
+    interact
+    "
+    EOH
+    not_if "rpm -qa | grep mysql-mroonga"
+  end
 end
 
-# rpm_package "mysql-mroonga-#{node['mysql56-mroonga']['mroonga_version']}.el6.x86_64.rpm" do
-#   source "#{base_dir}/build/rpmbuild/RPMS/x86_64/mysql-mroonga-#{node['mysql56-mroonga']['mroonga_version']}.el6.x86_64.rpm"
-#   action :install
-# end
+
 
 rpm_package "mysql-mroonga-doc-#{node['mysql56-mroonga']['mroonga_version']}.el6.x86_64.rpm" do
   source "#{base_dir}/build/rpmbuild/RPMS/x86_64/mysql-mroonga-doc-#{node['mysql56-mroonga']['mroonga_version']}.el6.x86_64.rpm"
