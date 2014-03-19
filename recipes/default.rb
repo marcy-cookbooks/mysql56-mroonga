@@ -173,12 +173,12 @@ rpm_package "mysql-mroonga-doc-#{node['mysql56-mroonga']['mroonga_version']}.el6
   action :install
 end
 
-# template "/usr/my.cnf" do
-#   source 'my.cnf.erb'
-#   owner  'root'
-#   group  'root'
-#   mode   '0644'
-#   notifies :restart, 'service[mysql]'
-# end
+template "/usr/my.cnf" do
+  source 'my.cnf.erb'
+  owner  'root'
+  group  'root'
+  mode   '0644'
+  notifies :restart, 'service[mysql]'
+end
 
 
