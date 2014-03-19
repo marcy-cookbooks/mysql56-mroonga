@@ -59,6 +59,6 @@ describe command('cat /root/.mysql_secret') do
 end
 
 describe command('mysql -uroot -ppassword -e "show databases"') do
-  it { should return_stdout /information_scheme/ }
+  it { should return_stdout /information_schema/ }
 end
 
