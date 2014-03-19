@@ -54,3 +54,11 @@ end
   end
 end
 
+describe command('cat /root/.mysql_secret') do
+  it { should return_stdout /: password/ }
+end
+
+describe command('mysql -uroot -ppassword -e "show databases"') do
+  it { should return_stdout /information_schema/ }
+end
+

@@ -84,15 +84,6 @@ service "mysql" do
   action [:enable, :start]
 end
 
-execute "reset root password" do
-  command <<-EOH
-  mysqladmin -uroot --password=$(head -1 /root/.mysql_secret | awk -F ': ' '{print $2}') password ""
-  mysql -uroot -e 'update user SET Password="" where User="root"' mysql
-  rm -f /root/.mysql_secret
-  EOH
-  only_if {File.exist?("/root/.mysql_secret")}
-end
-
 remote_file "#{base_dir}/groonga-release-1.1.0-1.noarch.rpm" do
   source "http://packages.groonga.org/centos/groonga-release-1.1.0-1.noarch.rpm"
 end
@@ -156,9 +147,25 @@ execute "rpmbuild" do
   not_if {File.exist?("#{base_dir}/build/rpmbuild/RPMS/x86_64/mysql-mroonga-doc-#{node['mysql56-mroonga']['mroonga_version']}.el6.x86_64.rpm")}
 end
 
+execute "reset root password" do
+  command <<-EOH
+  mysqladmin -uroot --password=$(head -1 /root/.mysql_secret | awk -F ': ' '{print $2}') password ""
+  mysql -uroot -e 'update user SET Password="" where User="root"' mysql
+  EOH
+  not_if "rpm -qa | grep mysql-mroonga"
+end
+
 rpm_package "mysql-mroonga-#{node['mysql56-mroonga']['mroonga_version']}.el6.x86_64.rpm" do
   source "#{base_dir}/build/rpmbuild/RPMS/x86_64/mysql-mroonga-#{node['mysql56-mroonga']['mroonga_version']}.el6.x86_64.rpm"
   action :install
+end
+
+execute "set root password" do
+  command <<-EOH
+  mysqladmin -uroot password "#{node['mysql56-mroonga']['root_password']}"
+  mysql -uroot -e 'update user SET Password="#{node['mysql56-mroonga']['root_password']}" where User="root"' mysql
+  echo "$(head -1 /root/.mysql_secret | awk -F ': ' '{print $1}'): #{node['mysql56-mroonga']['root_password']}\n" > /root/.mysql_secret
+  EOH
 end
 
 rpm_package "mysql-mroonga-doc-#{node['mysql56-mroonga']['mroonga_version']}.el6.x86_64.rpm" do
