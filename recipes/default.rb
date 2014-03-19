@@ -164,7 +164,7 @@ execute "set root password" do
   command <<-EOH
   mysqladmin -uroot password "#{node['mysql56-mroonga']['root_password']}"
   mysql -uroot -e 'update user SET Password="#{node['mysql56-mroonga']['root_password']}" where User="root"' mysql
-  echo "$(head -1 /root/.mysql_secret | awk -F ': ' '{print $1}'): #{node['mysql56-mroonga']['root_password']}¥n"
+  echo "$(head -1 /root/.mysql_secret | awk -F ': ' '{print $1}'): #{node['mysql56-mroonga']['root_password']}\n"
   EOH
 end
 
