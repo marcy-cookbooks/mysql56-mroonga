@@ -62,3 +62,8 @@ describe command('mysql -uroot -ppassword -e "show databases"') do
   it { should return_stdout /information_schema/ }
 end
 
+describe file('/usr/my.cnf') do
+  its(:content) { should match /mroonga_default_parser=TokenMecab/ }
+end
+
+

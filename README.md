@@ -15,9 +15,10 @@ Requirements
 Attributes
 ----------
 ``` ruby
-default['mysql56-mroonga']['mysql_version']   = "5.6.16-1"
-default['mysql56-mroonga']['mroonga_version'] = "4.00-2"
-default['mysql56-mroonga']['root_password']   = "password"
+default['mysql56-mroonga']['mysql_version']          = "5.6.16-1"
+default['mysql56-mroonga']['mroonga_version']        = "4.00-2"
+default['mysql56-mroonga']['root_password']          = "password"
+default['mysql56-mroonga']['mroonga_default_parser'] = "TokenMecab"
 ```
 
 #### mysql56-mroonga::default
@@ -45,6 +46,12 @@ default['mysql56-mroonga']['root_password']   = "password"
     <td>String</td>
     <td>Password of MySQL root user</td>
     <td><tt>4.00-2</tt></td>
+  </tr>
+  <tr>
+    <td><tt>['mysql56-mroonga']['mroonga_default_parser']</tt></td>
+    <td>String</td>
+    <td>Default parser for full text search</td>
+    <td><tt>TokenMecab</tt></td>
   </tr>
 </table>
 
